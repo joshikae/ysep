@@ -1,0 +1,166 @@
+
+<html lang="en" class="js-focus-visible" data-js-focus-visible="">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="X-UA-Compatible" content="ie=edge">
+  <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.1.3/css/bootstrap.min.css"
+    integrity="sha384-MCw98/SFnGE8fJT3GXwEOngsV7Zt27NXFoaoApmYm81iuXoPkFOJwJ8ERdknLPMO" crossorigin="anonymous">
+  <link rel="stylesheet" href="/css/style.css">
+  <title>Type-N-Speak</title>
+<style>
+  body {
+    background-image: linear-gradient(to right, #0acffe 0%, #495aff 100%);
+  }
+</style>
+</head>
+
+<body class="text-white">
+  <div class="container text-center">
+    <div class="logo col-lg-5 col-md-6 col-sm-10 mx-auto my-4">
+      <img src="https://res.cloudinary.com/nonsoblip/image/upload/v1620236457/speech_olzryv.jpg" alt="" class="w-100">
+    </div>
+
+    <div class="row">
+      <div class="col-md-6 mx-auto">
+        <form class="mb-5">
+          <div class="form-group">
+            <textarea name="text-box" id="text-input" class="form-control form-control-lg"
+              placeholder="Type anything..."></textarea>
+          </div>
+          <div class="row">
+            <div class="col-md-6">
+              <div class="form-group">
+                <label for="rate">Rate</label>
+                <div id="rate-value" class="badge badge-success float-right">1</div>
+                <input type="range" id="rate" class="custom-range" min="0.5" max="2" value="1" step="0.1">
+              </div>
+            </div>
+            <div class="col-md-6">
+              <div class="form-group">
+                <label for="pitch">Pitch</label>
+                <div id="pitch-value" class="badge badge-success float-right">1</div>
+                <input type="range" id="pitch" class="custom-range" min="0" max="2" value="1" step="0.1">
+              </div>
+            </div>
+            </div>
+          <div class="form-group">
+
+            <select id="voice-select" class="form-control form-control-lg"></select>
+
+          </div>
+          <button class="btn btn-light btn-lg btn-block">Speak!</button>
+        </form>
+
+
+        <p class="text-white"> Note: This app uses the Web Speech API which is experimental and may not fully work
+          in some versions of certain browsers</p>
+      </div>
+    </div>
+  </div>
+  <script>
+	const synth = window.speechSynthesis;
+const textForm = document.querySelector('form');
+const textInput = document.querySelector('#text-input');
+const voiceSelector = document.querySelector("#voice-select");
+const rate = document.querySelector('#rate');
+const rateValue = document.querySelector('#rate-value');
+const pitch = document.querySelector('#pitch');
+const pitchValue = document.querySelector('#pitch-value');
+const body = document.querySelector('body');
+
+let voices = [];
+
+const getVoices = () => {
+  voices = synth.getVoices();
+
+  // Loop through voices and create an option for each one
+  voices.forEach(voice => {
+    // Create option element
+    const option = document.createElement('option');
+    // Fill option with voice and language
+    option.textContent = voice.name + '(' + voice.lang + ')';
+
+    // Set needed option attributes
+    option.setAttribute('data-lang', voice.lang);
+    option.setAttribute('data-name', voice.name);
+    voiceSelector.appendChild(option);
+  });
+};
+getVoices();
+
+if (synth.onvoiceschanged !== undefined) {
+  synth.onvoiceschanged = getVoices;
+}
+
+// Speak
+const speak = () => {
+  // Check if speaking
+  if (synth.speaking) {
+    console.error('Already speaking...');
+    return;
+  }
+  if (textInput.value !== '') {
+    // Add background animation
+    body.style.background =
+      "#0acffe url(https://res.cloudinary.com/nonsoblip/image/upload/v1620236458/wave_n3rtre.gif)";
+    body.style.backgroundRepeat = 'repeat-x';
+    body.style.backgroundSize = '100% 100%';
+
+    // Get speak text
+    const speakText = new SpeechSynthesisUtterance(textInput.value);
+
+    // Speak end
+    speakText.onend = e => {
+      body.style.backgroundImage = `linear-gradient(to right, #0acffe 0%, #495aff 100%)`;
+    };
+
+    // Speak error
+    speakText.onerror = e => {
+      console.error('Something went wrong');
+    };
+
+    // Selected voice
+    const selectedVoice = voiceSelector.selectedOptions[0].getAttribute(
+      "data-name"
+    );
+
+    // Loop through voices
+    voices.forEach(voice => {
+      if (voice.name === selectedVoice) {
+        speakText.voice = voice;
+      }
+    });
+
+    // Set pitch and rate
+    speakText.rate = rate.value;
+    speakText.pitch = pitch.value;
+    // Speak
+    synth.speak(speakText);
+  }
+};
+
+// EVENT LISTENERS
+
+// Text form submit
+textForm.addEventListener('submit', e => {
+  e.preventDefault();
+  speak();
+  textInput.blur();
+});
+
+// Rate value change
+rate.addEventListener('change', e => (rateValue.textContent = rate.value));
+
+// Pitch value change
+pitch.addEventListener('change', e => (pitchValue.textContent = pitch.value));
+
+// Voice select change
+voiceSelector.addEventListener("change", (e) => speak());
+  </script>
+
+
+</body>
+
+</html>
