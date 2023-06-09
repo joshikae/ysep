@@ -1,33 +1,103 @@
+<!DOCTYPE html>
 <html>
 <head>
-   <title>Speech to text</title>
+   <title>Speech to text with Teachable Machine</title>
+   <style>
+      .hide {
+         display: none;
+      }
+   </style>
 </head>
-   <body>
-      <div class="speaker" style="display: flex;justify-content: space-between;width: 13rem;box-shadow: 0 0 13px #0000003d;border-radius: 5px;">
-         <p id="action" style="color: grey;font-weight: 800; padding: 0; padding-left: 2rem;"></p>
-         <button onclick="runSpeechRecog()" style="border: transparent;padding: 0 0.5rem;">
-            Speech
-         </button>
-      </div>
-      <h3 id="output" class="hide"></h3>
-      <script>
-         runSpeechRecog = () => {
-            document.getElementById("output").innerHTML = "Loading text...";
-            var output = document.getElementById('output');
-            var action = document.getElementById('action');
-            let recognization = new webkitSpeechRecognition();
-            recognization.onstart = () => {
-               action.innerHTML = "Listening...";
-            }
-            recognization.onresult = (e) => {
-               var transcript = e.results[0][0].transcript;
-               output.innerHTML = transcript;
-               output.classList.remove("hide")
-               action.innerHTML = "";
-            }
-            recognization.start();
+<body>
+   <div class="speaker" style="display: flex;justify-content: space-between;width: 13rem;box-shadow: 0 0 13px #0000003d;border-radius: 5px;">
+      <p id="action" style="color: grey;font-weight: 800; padding: 0; padding-left: 2rem;"></p>
+      <button onclick="runSpeechRecog()" style="border: transparent;padding: 0 0.5rem;">
+         Speech
+      </button>
+   </div>
+   <h3 id="output" class="hide"></h3>
+   <div id="label-container"></div>
+
+   <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@1.3.1/dist/tf.min.js"></script>
+   <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/speech-commands@0.4.0/dist/speech-commands.min.js"></script>
+   <script type="text/javascript">
+      // more documentation available at
+      // https://github.com/tensorflow/tfjs-models/tree/master/speech-commands
+
+      // the link to your model provided by Teachable Machine export panel
+      const URL = "./my_model/";
+
+      async function createModel() {
+         const checkpointURL = URL + "model.json"; // model topology
+         const metadataURL = URL + "metadata.json"; // model metadata
+
+         const recognizer = speechCommands.create(
+            "BROWSER_FFT", // fourier transform type, not useful to change
+            undefined, // speech commands vocabulary feature, not useful for your models
+            checkpointURL,
+            metadataURL
+         );
+
+         // check that model and metadata are loaded via HTTPS requests.
+         await recognizer.ensureModelLoaded();
+
+         return recognizer;
+      }
+
+      async function init() {
+         const recognizer = await createModel();
+         const classLabels = recognizer.wordLabels(); // get class labels
+         const labelContainer = document.getElementById("label-container");
+         for (let i = 0; i < classLabels.length; i++) {
+            labelContainer.appendChild(document.createElement("div"));
          }
-      </script>
-      <a href="/ysep/main.html">text to speech</a>
-   </body>
+
+         recognizer.listen(
+            result => {
+               const scores = result.scores; // probability of prediction for each class
+               // render the probability scores per class
+               for (let i = 0; i < classLabels.length; i++) {
+                  const classPrediction = classLabels[i] + ": " + result.scores[i].toFixed(2);
+                  labelContainer.childNodes[i].innerHTML = classPrediction;
+               }
+            },
+            {
+               includeSpectrogram: true, // in case listen should return result.spectrogram
+               probabilityThreshold: 0.75,
+               invokeCallbackOnNoiseAndUnknown: true,
+               overlapFactor: 0.50 // probably want between 0.5 and 0.75. More info in README
+            }
+         );
+      }
+
+      runSpeechRecog = () => {
+         document.getElementById("output").innerHTML = "Loading text...";
+         var output = document.getElementById("output");
+         var action = document.getElementById("action");
+         let recognition = new webkitSpeechRecognition();
+         recognition.onstart = () => {
+            action.innerHTML = "Listening...";
+         };
+         recognition.onresult = (e) => {
+            var transcript = e.results[0][0].transcript;
+            output.innerHTML = transcript;
+            output.classList.remove("hide");
+            action.innerHTML = "";
+
+            // Process the transcript using Teachable Machine model
+            const prediction = recognizer.wordPredict(transcript);
+            const classLabels = recognizer.wordLabels(); // get class labels
+            const labelContainer = document.getElementById("label-container");
+            for (let i = 0; i < classLabels.length; i++) {
+               const classPrediction = classLabels[i] + ": " + prediction.scores[i].toFixed(2);
+               labelContainer.childNodes[i].innerHTML = classPrediction;
+            }
+         };
+         recognition.start();
+      };
+
+      init();
+   </script>
+   <a href="/ysep/main.html">Text to speech</a>
+</body>
 </html>
