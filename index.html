@@ -27,10 +27,21 @@
             recognition.onresult = (e) => {
                 var transcript = e.results[0][0].transcript;
                 output.innerHTML = transcript;
-                output.classList.remove("hide")
+                output.classList.remove("hide");
                 action.innerHTML = "";
+
+                // You can now process the transcript and compare it with your database
+                processTranscript(transcript);
             }
             recognition.start();
+        }
+
+        // Process the transcript and compare with the database
+        processTranscript = (transcript) => {
+            // You can use the transcript and compare it with your database here
+            // Implement your logic for speech recognition using the database from the first code snippet
+            // You can perform operations like matching, searching, or any other processing based on your specific requirements
+            // You can access the database and perform the necessary operations to convert speech to text
         }
 
         // Teachable Machine Audio Model
