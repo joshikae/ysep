@@ -8,23 +8,66 @@
     <button onclick="stopRecording()">Stop Recording</button>
     <div id="output"></div>
 
-    <script>
+    <div>Teachable Machine Audio Model</div>
+    <button type="button" onclick="init()">Start</button>
+    <div id="label-container"></div>
+
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@1.3.1/dist/tf.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/speech-commands@0.4.0/dist/speech-commands.min.js"></script>
+
+    <script type="text/javascript">
+        const URL = "https://teachablemachine.withgoogle.com/models/uzJAdE7aa/";
+
+        async function createModel() {
+            const checkpointURL = URL + "model.json";
+            const metadataURL = URL + "metadata.json";
+
+            const recognizer = speechCommands.create(
+                "BROWSER_FFT",
+                undefined,
+                checkpointURL,
+                metadataURL
+            );
+
+            await recognizer.ensureModelLoaded();
+
+            return recognizer;
+        }
+
+        async function init() {
+            const recognizer = await createModel();
+            const classLabels = recognizer.wordLabels();
+            const labelContainer = document.getElementById("label-container");
+            for (let i = 0; i < classLabels.length; i++) {
+                labelContainer.appendChild(document.createElement("div"));
+            }
+
+            recognizer.listen(
+                (result) => {
+                    const scores = result.scores;
+                    for (let i = 0; i < classLabels.length; i++) {
+                        const classPrediction = classLabels[i] + ": " + result.scores[i].toFixed(2);
+                        labelContainer.childNodes[i].innerHTML = classPrediction;
+                    }
+                    processTranscript(result.scores, classLabels);
+                },
+                {
+                    includeSpectrogram: true,
+                    probabilityThreshold: 0.75,
+                    invokeCallbackOnNoiseAndUnknown: true,
+                    overlapFactor: 0.50
+                }
+            );
+        }
+
         let recognition;
         let outputDiv = document.getElementById('output');
         let transcription = '';
-
-        // Simulated database
-        const database = [
-            { phrase: 'hello', translation: 'bonjour' },
-            { phrase: 'goodbye', translation: 'au revoir' },
-            // Add more phrases and translations to the database
-        ];
 
         function startRecording() {
             transcription = '';
             outputDiv.innerHTML = 'Listening...';
 
-            // Start recording using the Web Speech API
             recognition = new webkitSpeechRecognition();
             recognition.onresult = handleRecognitionResult;
             recognition.start();
@@ -33,11 +76,7 @@
         function stopRecording() {
             outputDiv.innerHTML = 'Processing...';
 
-            // Stop recording and end recognition
             recognition.stop();
-
-            // Perform database integration
-            processTranscript(transcription);
         }
 
         function handleRecognitionResult(event) {
@@ -47,19 +86,20 @@
             outputDiv.innerHTML = transcription;
         }
 
-        function processTranscript(transcript) {
-            // Perform speech-to-text processing using the database
-            const words = transcript.toLowerCase().split(' ');
+        function processTranscript(scores, classLabels) {
+            const highestScoreIndex = scores.indexOf(Math.max(...scores));
+            const word = classLabels[highestScoreIndex];
 
-            let translation = '';
-            words.forEach((word) => {
-                const databaseEntry = database.find((entry) => entry.phrase.toLowerCase() === word);
-                if (databaseEntry) {
-                    translation += databaseEntry.translation + ' ';
-                }
-            });
+            const database = [
+                { phrase: 'hello', translation: 'bonjour' },
+                { phrase: 'goodbye', translation: 'au revoir' },
+                // Add more phrases and translations to the database
+            ];
 
-            outputDiv.innerHTML = translation;
+            const databaseEntry = database.find((entry) => entry.phrase.toLowerCase() === word.toLowerCase());
+            if (databaseEntry) {
+                outputDiv.innerHTML = databaseEntry.translation;
+            }
         }
     </script>
 </body>
