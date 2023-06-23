@@ -51,14 +51,10 @@
     </style>
 </head>
 <body>
-    <h1>Speech to Text Converter</h1>
-    <button onclick="startRecording()">Start Recording</button>
-    <button onclick="stopRecording()">Stop Recording</button>
+    <h1>Speech to Text</h1>
+    <button onclick="startListening()">Start Listening</button>
+    <button onclick="stopListening()">Stop Listening</button>
     <div id="output"></div>
-
-    <h2>Teachable Machine Audio Model</h2>
-    <button type="button" onclick="init()">Start</button>
-    <div id="label-container"></div>
 
     <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@1.3.1/dist/tf.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/speech-commands@0.4.0/dist/speech-commands.min.js"></script>
@@ -112,9 +108,9 @@
         let outputDiv = document.getElementById('output');
         let transcription = '';
 
-        function startRecording() {
+        function startListening() {
             transcription = '';
-            outputDiv.innerHTML = '<span class="label">Recording:</span> Listening...';
+            outputDiv.innerHTML = '<span class="label">Listening:</span> ...';
             recognition = new webkitSpeechRecognition();
             recognition.interimResults = true;
             recognition.continuous = true;
@@ -128,14 +124,14 @@
                         interimTranscript += transcript;
                     }
                 }
-                outputDiv.innerHTML = '<span class="label">Recording:</span> ' + transcription + '<span class="interim">' + interimTranscript + '</span>';
+                outputDiv.innerHTML = '<span class="label">Listening:</span> ' + transcription + '<span class="interim">' + interimTranscript + '</span>';
             };
             recognition.start();
         }
 
-        function stopRecording() {
+        function stopListening() {
             recognition.stop();
-            outputDiv.innerHTML = '<span class="label">Recording:</span> Stopped';
+            outputDiv.innerHTML = '<span class="label">Listening:</span> Stopped';
         }
 
         function processTranscript(scores, classLabels) {
