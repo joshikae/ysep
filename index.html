@@ -2,13 +2,38 @@
 <html>
 <head>
     <title>Speech to Text</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+        }
+
+        button {
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            margin: 10px;
+            cursor: pointer;
+        }
+
+        #output {
+            margin-top: 20px;
+            font-size: 18px;
+        }
+
+        .label {
+            font-weight: bold;
+        }
+    </style>
 </head>
 <body>
+    <h1>Speech to Text Converter</h1>
     <button onclick="startRecording()">Start Recording</button>
     <button onclick="stopRecording()">Stop Recording</button>
     <div id="output"></div>
 
-    <div>Teachable Machine Audio Model</div>
+    <h2>Teachable Machine Audio Model</h2>
     <button type="button" onclick="init()">Start</button>
     <div id="label-container"></div>
 
@@ -66,7 +91,7 @@
 
         function startRecording() {
             transcription = '';
-            outputDiv.innerHTML = 'Listening...';
+            outputDiv.innerHTML = '<span class="label">Listening...</span>';
 
             recognition = new webkitSpeechRecognition();
             recognition.onresult = handleRecognitionResult;
@@ -74,7 +99,7 @@
         }
 
         function stopRecording() {
-            outputDiv.innerHTML = 'Processing...';
+            outputDiv.innerHTML = '<span class="label">Processing...</span>';
 
             recognition.stop();
         }
@@ -83,25 +108,32 @@
             const transcript = event.results[0][0].transcript;
             transcription += transcript + ' ';
 
-            outputDiv.innerHTML = transcription;
+            outputDiv.innerHTML = '<span class="label">Transcript:</span> ' + transcription;
         }
 
         function processTranscript(scores, classLabels) {
-            const highestScoreIndex = scores.indexOf(Math.max(...scores));
-            const word = classLabels[highestScoreIndex];
+            const maxScore = Math.max(...scores);
+            const maxScoreIndex = scores.indexOf(maxScore);
+            const word = classLabels[maxScoreIndex];
 
-            const database = [
-                { phrase: 'hello', translation: 'bonjour' },
-                { phrase: 'goodbye', translation: 'au revoir' },
-                // Add more phrases and translations to the database
-            ];
+            // Database for translations
+            const database = {
+                "hello": "Hello",
+                "goodbye": "Goodbye",
+                "thank you": "Thank you",
+                "sorry": "Sorry",
+                "yes": "Yes",
+                "no": "No"
+            };
 
-            const databaseEntry = database.find((entry) => entry.phrase.toLowerCase() === word.toLowerCase());
-            if (databaseEntry) {
-                outputDiv.innerHTML = databaseEntry.translation;
+            const translation = database[word];
+
+            if (translation) {
+                outputDiv.innerHTML = '<span class="label">Translation:</span> ' + translation;
+            } else {
+                outputDiv.innerHTML = '<span class="label">Translation:</span> Unknown word';
             }
         }
     </script>
 </body>
 </html>
-
