@@ -2,77 +2,52 @@
 <html>
 <head>
     <title>Speech to Text</title>
-    <style>
-        body {
-            font-family: 'Arial', sans-serif;
-            text-align: center;
-        }
-
-        h1 {
-            font-size: 32px;
-        }
-
-        button {
-            background-color: #4CAF50;
-            color: white;
-            border: none;
-            padding: 10px 20px;
-            margin: 10px;
-            cursor: pointer;
-            font-size: 18px;
-            border-radius: 4px;
-        }
-
-        #output {
-            margin-top: 20px;
-            font-size: 24px;
-            text-align: center;
-            color: #333;
-        }
-
-        .label {
-            font-weight: bold;
-            font-size: 18px;
-        }
-
-        #label-container {
-            display: flex;
-            flex-wrap: wrap;
-            justify-content: center;
-            margin-top: 20px;
-        }
-
-        #label-container div {
-            margin: 5px;
-            padding: 10px;
-            background-color: #f0f0f0;
-            border-radius: 4px;
-        }
-    </style>
-</head>
-<body>
-    <h1>Speech to Text</h1>
-    <button onclick="startListening()">Start Listening</button>
-    <button onclick="stopListening()">Stop Listening</button>
-    <div id="output"></div>
-
     <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@1.3.1/dist/tf.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/speech-commands@0.4.0/dist/speech-commands.min.js"></script>
+</head>
+<body>
+    <div class="speaker" style="display: flex;justify-content: space-between;width: 13rem;box-shadow: 0 0 13px #0000003d;border-radius: 5px;">
+        <p id="action" style="color: grey;font-weight: 800; padding: 0; padding-left: 2rem;"></p>
+        <button onclick="runSpeechRecog()" style="border: transparent;padding: 0 0.5rem;">
+            Speech
+        </button>
+    </div>
+    <h3 id="output" class="hide"></h3>
+    <div id="label-container"></div>
+    <script>
+        // Speech-to-Text
+        runSpeechRecog = () => {
+            document.getElementById("output").innerHTML = "Loading text...";
+            var output = document.getElementById('output');
+            var action = document.getElementById('action');
+            let recognition = new webkitSpeechRecognition();
+            recognition.onstart = () => {
+                action.innerHTML = "Listening...";
+            }
+            recognition.onresult = (e) => {
+                var transcript = e.results[0][0].transcript;
+                output.innerHTML = transcript;
+                output.classList.remove("hide")
+                action.innerHTML = "";
+            }
+            recognition.start();
+        }
 
-    <script type="text/javascript">
-        const URL = "https://teachablemachine.withgoogle.com/models/uzJAdE7aa/";
+        // Teachable Machine Audio Model
+        const URL = "PUT_YOUR_TEACHABLE_MACHINE_AUDIO_MODEL_URL_HERE";
 
         async function createModel() {
-            const checkpointURL = URL + "model.json";
-            const metadataURL = URL + "metadata.json";
+            const checkpointURL = URL + "model.json"; // model topology
+            const metadataURL = URL + "metadata.json"; // model metadata
 
             const recognizer = speechCommands.create(
-                "BROWSER_FFT",
-                undefined,
+                "BROWSER_FFT", // Fourier transform type, not useful to change
+                undefined, // Speech commands vocabulary feature, not useful for your models
                 checkpointURL,
                 metadataURL
             );
 
+            // Check that model and metadata are loaded via HTTPS requests.
             await recognizer.ensureModelLoaded();
 
             return recognizer;
@@ -80,82 +55,38 @@
 
         async function init() {
             const recognizer = await createModel();
-            const classLabels = recognizer.wordLabels();
+            const classLabels = recognizer.wordLabels(); // Get class labels
             const labelContainer = document.getElementById("label-container");
             for (let i = 0; i < classLabels.length; i++) {
                 labelContainer.appendChild(document.createElement("div"));
             }
 
+            // listen() takes two arguments:
+            // 1. A callback function that is invoked anytime a word is recognized.
+            // 2. A configuration object with adjustable fields
             recognizer.listen(
                 (result) => {
-                    const scores = result.scores;
+                    const scores = result.scores; // Probability of prediction for each class
+                    // Render the probability scores per class
                     for (let i = 0; i < classLabels.length; i++) {
                         const classPrediction = classLabels[i] + ": " + result.scores[i].toFixed(2);
                         labelContainer.childNodes[i].innerHTML = classPrediction;
                     }
-                    processTranscript(result.scores, classLabels);
                 },
                 {
-                    includeSpectrogram: true,
+                    includeSpectrogram: true, // In case listen should return result.spectrogram
                     probabilityThreshold: 0.75,
                     invokeCallbackOnNoiseAndUnknown: true,
-                    overlapFactor: 0.50
+                    overlapFactor: 0.50, // Probably want between 0.5 and 0.75. More info in README
                 }
             );
         }
 
-        let recognition;
-        let outputDiv = document.getElementById('output');
-        let transcription = '';
-
-        function startListening() {
-            transcription = '';
-            outputDiv.innerHTML = '<span class="label">Listening:</span> ...';
-            recognition = new webkitSpeechRecognition();
-            recognition.interimResults = true;
-            recognition.continuous = true;
-            recognition.onresult = function(event) {
-                let interimTranscript = '';
-                for (let i = event.resultIndex; i < event.results.length; ++i) {
-                    const transcript = event.results[i][0].transcript;
-                    if (event.results[i].isFinal) {
-                        transcription += transcript;
-                    } else {
-                        interimTranscript += transcript;
-                    }
-                }
-                outputDiv.innerHTML = '<span class="label">Listening:</span> ' + transcription + '<span class="interim">' + interimTranscript + '</span>';
-            };
-            recognition.start();
-        }
-
-        function stopListening() {
-            recognition.stop();
-            outputDiv.innerHTML = '<span class="label">Listening:</span> Stopped';
-        }
-
-        function processTranscript(scores, classLabels) {
-            const maxScore = Math.max(...scores);
-            const maxScoreIndex = scores.indexOf(maxScore);
-            const word = classLabels[maxScoreIndex];
-
-            const database = {
-                "hello": "Hello",
-                "goodbye": "Goodbye",
-                "thank you": "Thank you",
-                "sorry": "Sorry",
-                "yes": "Yes",
-                "no": "No"
-            };
-
-            const translation = database[word];
-
-            if (translation) {
-                outputDiv.innerHTML = '<span class="label">Translation:</span> ' + translation;
-            } else {
-                outputDiv.innerHTML = '<span class="label">Translation:</span> Unknown word';
-            }
-        }
+        // Initialize both functions
+        window.onload = () => {
+            init();
+        };
     </script>
+    <a href="/ysep/main.html">Text to Speech</a>
 </body>
 </html>
